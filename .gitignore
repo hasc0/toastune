@@ -1,0 +1,10 @@
+# Build
+build
+
+# LaTeX
+*.aux
+*.log
+*.fls
+*.pdf
+*.fdb_latexmk
+*.synctex.gz
