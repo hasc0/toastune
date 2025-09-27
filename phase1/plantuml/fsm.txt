@@ -1,5 +1,24 @@
 @startuml
 
+state "IDLE_Light\nPrefDisplay: PrefState ('Light'), RunState ('Waiting')\nTempDisplay: CurrTemp\nServoPos (0)\nResetTimer (Inactive)" as s1
+state "IDLE_Medium\nPrefDisplay: PrefState ('Medium'), RunState ('Waiting')\nTempDisplay: CurrTemp\nServoPos (0)\nResetTimer (Inactive)" as s2
+state "IDLE_Dark\nPrefDisplay: PrefState ('Dark'), RunState ('Waiting')\nTempDisplay: CurrTemp\nServoPos (0)\nResetTimer (Inactive)" as s3
+state "RUN_Light\nPrefDisplay: PrefState ('Light'), RunState ('Toasting')\nTempDisplay: CurrTemp, TimeElapsed\nServoPos (0)\nResetTimer (Inactive)" as s4
+state "RUN_Medium\nPrefDisplay: PrefState ('Medium'), RunState ('Toasting')\nTempDisplay: CurrTemp, TimeElapsed\nServoPos (0)\nResetTimer (Inactive)" as s5
+state "RUN_Dark\nPrefDisplay: PrefState('Dark'), RunState ('Toasting')\nTempDisplay: CurrTemp, TimeElapsed\nServoPos (0)\nResetTimer (Inactive)" as s6
+state "END_Toast\nPrefDisplay: RunState ('Finshed')\nTempDisplay: CurrTemp, EndTime\nServoPos (180)\nResetTimer (Active)" as s7
 
+[*] --> s1 : System Start
+s1 --> s2 : PREF_BTN_PRESS
+s2 --> s3 : PREF_BTN_PRESS
+s1 --> s4 : START_BTN_PRESS
+s2 --> s5 : START_BTN_PRESS
+s3 --> s6 : START_BTN_PRESS
+s4 --> s7 : LIGHT_TEMP_HIT
+s5 --> s7 : MEDIUM_TEMP_HIT
+s6 --> s7 : DARK_TEMP_HIT
+s7 --> s1 : LIGHT_END_10_SEC_ELAPSED\nLIGHT_END_PREF_BTN_PRESS\nLIGHT_END_START_BTN_PRESS
+s7 --> s2 : MEDIUM_END_10_SEC_ELAPSED\nMEDIUM_END_PREF_BTN_PRESS\nMEDIUM_END_START_BTN_PRESS
+s7 --> s3 : DARK_END_10_SEC_ELAPSED\nDARK_END_PREF_BTN_PRESS\nDARK_END_START_BTN_PRESS
 
 @enduml
