@@ -1,0 +1,26 @@
+@startuml
+left to right direction
+
+actor "Toast Eater" as a1
+actor "Toaster" as a2
+
+rectangle toastune {
+    usecase "Select Toast Darkness" as uc1
+    usecase "Activate Toast Monitoring" as uc2
+    usecase "Cancel Toast Monitoring" as uc3
+    usecase "Change Preference Display State" as uc4
+    usecase "Display Toast Temperature" as uc5
+    usecase "Actuate Servomotor" as uc6
+}
+
+a1 --> uc1
+a1 --> uc2
+a1 --> uc3
+
+uc1 --> uc4 : <<includes>>
+uc2 --> uc5 : <<includes>>
+uc2 --> uc6 : <<includes>>
+
+uc6 --> a2
+
+@enduml

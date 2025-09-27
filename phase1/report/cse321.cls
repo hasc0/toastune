@@ -15,6 +15,8 @@
 \RequirePackage[T1]{fontenc}
 \RequirePackage[utf8]{inputenc}
 
+\RequirePackage{amsmath}
+
 \RequirePackage{graphicx}
 \RequirePackage{caption}
 

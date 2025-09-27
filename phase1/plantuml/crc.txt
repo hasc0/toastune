@@ -1,0 +1,51 @@
+@startuml
+
+class "ToastService" as c1 {
+    {field} Responsibilities:
+    {field} +Maintains Preference State
+    {field} +Tracks Termination Conditions
+    {field} +Manages Hardware Signals
+    {field} +Coordinates Peripheral State
+    {field} +Actuates Servomotor
+    {method} Collaborators:
+    {method} +InputHandler
+    {method} +DisplayManager
+    {method} +TemperatureMonitor
+}
+
+class "InputHandler" as c2 {
+    {field} Responsibilities:
+    {field} +Listens for Button Inputs
+    {field} +Notifies of Button Presses
+    {method} Collaborators:
+    {method} +ToastService
+}
+
+class "DisplayManager" as c3 {
+    {field} Responsibilities:
+    {field} +Updates Display Output
+    {field} +Formats Data for Readability
+    {field} +Outputs System Status
+    {method} Collaborators:
+    {method} +ToastService
+    {method} +DisplayDriver
+}
+
+class "TemperatureMonitor" as c4 {
+    {field} Responsibilities:
+    {field} +Monitors Thermocouple State
+    {field} +Handles Temperature Conversion
+    {field} +Provides Temperature Values
+    {method} Collaborators:
+    {method} +ToastService
+    {method} +ThermocoupleDriver
+}
+
+c1 --> c2 : listens
+c1 --> c3 : sends state
+c1 --> c4 : activates
+c2 --> c1 : notifies
+c4 --> c1 : sends state
+c4 --> c3 : sends state
+
+@enduml
