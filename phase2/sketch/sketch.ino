@@ -1,8 +1,9 @@
 #include <Arduino.h>
-#include <SPI.h>
+#include <Arduino_FreeRTOS.h>
+#include <queue.h>
+#include <task.h>
+#include <U8x8lib.h>
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
 #include <Servo.h>
 
 #define PIN_START 2
@@ -32,23 +33,21 @@ typedef enum {
 
 typedef enum {
   IDLE,
-  RUN,
-  END
+  RUN
 } state_t;
 
 typedef enum {
   EV_MODE,
   EV_START,
-  EV_END,
   EV_RESET
 } event_t;
 
-Adafruit_SSD1306 display(DISPLAY_WIDTH, DISPLAY_HEIGHT, &Wire, DISPLAY_RESET);
+U8X8_SSD1306_128X64_NONAME_HW_I2C display(U8X8_PIN_NONE);
 Servo servo;
 
 volatile toast_t mode = LIGHT;
-volatile state_t prevState = IDLE_LIGHT;
-volatile state_t state = IDLE_LIGHT;
+volatile state_t prevState = IDLE;
+volatile state_t state = IDLE;
 QueueHandle_t eventQueue;
 
 float getVoltage(int rawValue) {
@@ -85,20 +84,8 @@ void inputHandler(void *pv) {
         modeChange = now;
 
         if (modeChange == LOW) {
-          switch (mode) {
-            case LIGHT:
-              mode = MEDIUM;
-              break;
-            case MEDIUM:
-              mode = DARK;
-              break;
-            case DARK:
-              mode = LIGHT;
-              break;
-          }
-
           event_t ev = EV_MODE;
-          xQueueSend(eventQueue, &ev, 0):
+          xQueueSend(eventQueue, &ev, 0);
         }
       }
     }
@@ -112,17 +99,18 @@ void inputHandler(void *pv) {
         lastStart = readStart;
         startChange = now;
 
+        event_t ev;
         if (startChange == LOW) {
           switch (state) {
             case IDLE:
-              event_t ev = EV_START;
+              ev = EV_START;
               break;
             case RUN:
-              event_t ev = EV_RESET;
+              ev = EV_RESET;
               break;
           }
 
-          xQueueSend(eventQueue, &ev, 0):
+          xQueueSend(eventQueue, &ev, 0);
         }
       }
     }
@@ -143,17 +131,13 @@ void displayManager(void *pv) {
       modeOut = "Mode: Dark";
     }
 
-    float temp = temperatureMonitor;
+    float temp = temperatureMonitor();
     String tempOut = "Temp: " + String(temp) + " C";
 
-    display.clearDisplay();
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0, 0);
-    display.println("Yes, toast...");
-    display.setCursor(0, 20);
-    display.println(modeOut);
-    display.setCursor(0, 30);
-    display.println(tempOut);
+    display.setFont(u8x8_font_victoriabold8_r);
+    display.drawString(0, 0, "Yes, toast...");
+    display.drawString(0, 20, modeOut.c_str());
+    display.drawString(0, 30, tempOut.c_str());
 
     uint32_t now = millis();
     uint32_t start;
@@ -163,7 +147,7 @@ void displayManager(void *pv) {
       prevState = RUN;
     }
 
-    string timeOut = "Time: ";
+    String timeOut = "Time: ";
 
     switch (state) {
       case IDLE:
@@ -172,9 +156,6 @@ void displayManager(void *pv) {
       case RUN:
         timeOut += String((now - start) / 1000);
         timeOut += " s";
-        break;
-      case END:
-        timeOut += "Done";
         break;
     }
 
@@ -199,15 +180,29 @@ void toastService(void *pv) {
   }
 
   for (;;) {
-    if (xQueueReceieve(eventQueue, &ev, portMAX_DELAY) == pdPASS) {
+    if (xQueueReceive(eventQueue, &ev, portMAX_DELAY) == pdPASS) {
       switch (ev) {
         case EV_MODE:
+          switch (mode) {
+            case LIGHT:
+              mode = MEDIUM;
+              break;
+            case MEDIUM:
+              mode = DARK;
+              break;
+            case DARK:
+              mode = LIGHT;
+              break;
+          }
+
           break;
         case EV_START:
-          break;
-        case EV_END:
+          prevState = state;
+          state = RUN;
           break;
         case EV_RESET:
+          prevState = state;
+          state = IDLE;
           break;
       }
     }
@@ -220,37 +215,28 @@ void setup() {
   pinMode(PIN_START, INPUT_PULLUP);
   pinMode(PIN_MODE, INPUT_PULLUP);
 
-  if (!display.begin(SSD1306_SWITCHCAPVCC, DISPLAY_ADDR)) {
-    Serial.println("Display failed to initialize.");
-  }
+  display.begin();
 
-  display.clearDisplay();
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0);
-  display.println("Toastune v0.1");
-  display.setCursor(0, 20);
-  display.println("CSE 321 Term Project");
-  display.setCursor(0, 40);
-  display.println("Harper Scott");
-  display.display();
-  delay(2000);
+  display.setFont(u8x8_font_victoriabold8_r);
+  display.drawString(0, 0, "Toastune v0.1");
+  display.drawString(0, 20, "CSE 321 Project");
+  display.drawString(0, 30, "Harper Scott");
 
   servo.attach(PIN_SERVO);
 
-  servo.write(0);
-  delay(500);
-  servo.write(90);
   delay(500);
   servo.write(180);
   delay(500);
   servo.write(90);
   delay(500);
 
-  eventQueue = xQueueCreate(10, sizeof(event_t));
+  eventQueue = xQueueCreate(5, sizeof(event_t));
 
-  xTaskCreate(toastService, "Toast Service", 4096, NULL, 3, NULL, 1);
-  xTaskCreate(inputHandler, "Input Handler", 4096, NULL, 2, NULL, 1);
-  xTaskCreate(displayManager, "Display Manager", 4096, NULL, 1, NULL, 1);
+  xTaskCreate(toastService, "Toast Service", 1024, NULL, 3, NULL);
+  xTaskCreate(inputHandler, "Input Handler", 1024, NULL, 2, NULL);
+  xTaskCreate(displayManager, "Display Manager", 1024, NULL, 1, NULL);
+
+  vTaskStartScheduler();
 }
 
 void loop() {}

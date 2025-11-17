@@ -9,24 +9,116 @@
 \maketitle
 
 \section{Introduction}
-
+The objective of \verb|toasttune| is to make it possible to get a consistent piece of toast regardless
+of what toaster is being used. The long-term ideal for this project would be a self contained hardware
+unit that can be attached to any toaster, allowing any user to easily achieve their perfect toast profile.
+In creating this prototype several challenges have appeared, most of which are software-related. However,
+the hardware has been finalized with the exception of a consistent mounting system.
 
 \section{Hardware Components}
+The core of \verb|toasttune| is an Arduino UNO R3. The final peripheral components are as follows:
+\begin{itemize}
+    \item Arduino UNO R3
+    \item USB-A to USB-B Cable
+    \item ELEGOO Breadboard
+    \item ELEGOO 0.96" 128x64 I$^2$C OLED Display (SSD1306)
+    \item Feetech FS90R Continuous Rotation Servo
+    \item Adafruit AD8495 K-Type Thermocouple Amplifier
+    \item Adafruit Type-K Glass Braid Insulated Termocouple
+    \item 18x Jumper Wire
+    \item 2x Button
+\end{itemize}
+The purpose of the USB cable is to power the Arduino. All additional components recieve power from the 5V
+pin on the Arduino itself. The OLED display serves to display the status of the system and the current
+selected toast "darkness" setting alongside elapsed time and thermocouple when the system is running
+temperature. The servo actuates the button on the toaster that cancels the toasting process once the
+target temperature has been reached. The thermocouple and amplifier are used to probe the surface of the
+bread in order to get the current temperature reading. One of the buttons starts and stops the system and
+the second button rotates through the toast preference modes.
 
+\pagebreak
 
 \section{Software Components}
-
+The codebase is hosted on GitHub in order to maintain proper versioning to ensure that rollbacks are
+possible in situations where major breakages occur. The libraries used are as follows:
+\begin{itemize}
+    \item FreeRTOS (\verb|queue.h|/\verb|task.h|)
+    \item U8X8
+    \item Wire
+    \item Servo
+\end{itemize}
+The most obscure libary listed, U8X8, is a lightweight library used for producing output to the SSD1306
+OLED display. This was chosen because the standard Adafruit library consumed a significant amount of
+storage and memory and most of its functionality was not needed. U8X8 only allows for text output, which
+is all that is needed for this project. The code is currently organized into three major task components:
+\begin{itemize}
+    \item \verb|inputHandler|
+    \item \verb|displayManager|
+    \item \verb|toastService|
+\end{itemize}
+The \verb|inputHandler| task processes all button inputs and pushes relevant events to the event queue.
+The \verb|displayManager| task handles all output to the display, including the formatting of strings
+and reading the thermocouple input in order to display an accurate, up-to-date reading. Finally, the
+\verb|toastService| task handles the actual toasting process and actuation of the servo, along with
+management of events and state as processed from the inputs. The \verb|setup()| function contains code
+to verify all output components are working. This is done by displaying a welcome message on the display
+and briefly actuating the servo.
 
 \section{Testing Scripts and Patterns}
-
+The bulk of the testing is done manually using human input. The testing process is as follows:
+\begin{itemize}
+    \item
+    On system reset, verify that the welcome message (project name, course name, and author name) all
+    appear on screen.
+    \item
+    Verify that the display switches to real-time display of currently selected mode ("Light" following
+    reset), current temperature in celsius, and the elapsed time ("Idle" following reset).
+    \item
+    Press the mode select button several time, ensuring that the select mode cycles from "Light" to
+    "Medium" to "Dark" and back to "Light".
+    \item
+    Use a heat source to heat the thermocouple, confirm the temperature value approaches 750.
+    \item
+    Press the start button and confirm the time value changes from "Idle" to an elapsed seconds value.
+    \item
+    Heat the thermocouple and verify the display ouputs confirmation of toast process conclusion once
+    the temperature value reaches 200, 220, and 240 for "Light", "Medium", and "Dark" modes, respectively.
+    \item
+    Confirm that the servo actuated with every completed toasting process.
+    \item
+    Start the toasting cycle then cancel it and confirm the servo actuates.
+\end{itemize}
 
 \section{Images}
+\begin{center}
+    \includegraphics[width=\linewidth]{figures/wide.png}
+\end{center}
 
+\begin{center}
+    \includegraphics[width=\linewidth]{figures/close.png}
+\end{center}
 
 \section{Observation and Notes}
-
+The main observation is that the task structure currently utilized is highly volatile and experiences
+significant bugs. Due to the size of some of the libraries used, stack overflows are frequent and the
+system often fails to initialize. To rectify this, the idea is to refactor the structure of the code in
+a way that eliminates tasks. The \verb|toastService| will serve as the core of the loop and will call
+other functions in order to function correctly. The anticipated result of this is a slightly less
+responsive system with significantly increased reliability. The second issue, which was unanticipated
+due to poor planning, is that the use of a continuous servo makes it far more challenging to precisely
+position the servo head. Instead of specifying a rotation angle, a formula must be used to convert the
+speed at which the servo rotates to a rotation angle over a certain duration. This solution is less
+repeatable but will work within a reasonable margin of error. The final issue pertains the the display
+library used. In initial testing, the Adafruit SSD1306 library was used and produced reliable output.
+However, due to size constraints it was replaced with U8X8 which is significantly lighter-weight. This
+library seems to interact poorly with the library for servo handling in some cases and occasionally
+breaks servo output. It is still unclear if this issue is completely related to the library change, but
+when this potential cause was isolated it seemed to be the root cause.
 
 \section{Conclusion}
-
+There are a few issues needing resolution in order to make the final product viable, but these are
+relatively minor software changes. The hardware has been finalized and the system works in several cases,
+so the remainder of the work is effectively fixing bugs and determining the final temperature bounds for
+each preference mode.
 
 \end{document}
