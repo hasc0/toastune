@@ -1,0 +1,92 @@
+\documentclass{beamer}
+
+\usetheme{Madrid}
+
+\title{CSE 321 Term Project}
+\subtitle{toastune}
+\author{Harper Scott}
+\institute{University at Buffalo}
+\date{Fall 2025}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}
+\frametitle{Introduction}
+toastune is...
+\begin{itemize}
+    \item A real-time system intended to optimize the making of toast.
+    \item Portable and intended for use with any toaster on the market.
+    \item Responsive, reliable, and easy to setup and use.
+\end{itemize}
+
+toastune's goals are to...
+\begin{itemize}
+    \item Allow the user to consistently toast bread to their desired darkness level.
+    \item Be mounted to any toaster in a way that is minimal, versatile, and unobstructive.
+    \item Add minimal overhead to the process of toasting a slice of bread.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Features}
+Hardware
+\begin{itemize}
+    \item \textbf{OLED Display:} Shows current toast darkness setting, thermocouple temperature, and idle/run status.
+    \item \textbf{Start Button:} Begins the temperature monitoring process.
+    \item \textbf{Mode Button:} Changes the toast darkness preference mode.
+    \item \textbf{Thermocouple:} Inserted into the toast in order to monitor surface temperature.
+    \item \textbf{Servomotor:} Actuates toast cancellation button on toaster when target temperature is attained.
+\end{itemize}
+
+Software
+\begin{itemize}
+    \item Real-time temperature monitoring and servomotor actuation.
+    \item State management for the different toast darkness preferences.
+    \item Simple, lightweight logic in order to ensure responsiveness and minimize risk of deadline misses.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Challenges}
+Hardware Shortcomings
+\begin{itemize}
+    \item Use of continuous servo limits precision and repeatability.
+    \item Display size limits amount of information displayed.
+    \item No feasible "universal" servomotor mounting solution could be concieved.
+\end{itemize}
+
+Software Limitations
+\begin{itemize}
+    \item Memory limitations necessitated a shift from a task-based implementation to a simple loop.
+    \item The chosen display library only handles text output due to memory constraints.
+\end{itemize}
+
+\begin{alertblock}{Warning}
+    Currently, toastune carries high risk of electrical shock due to the usage of a bare metal thermocouple.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}
+\frametitle{Roadmap}
+Hardware Upgrades
+\begin{itemize}
+    \item Move from Arduino UNO Rev3 to a more compact board with more memory.
+    \item Replace continuous servomotor with a positional servomotor.
+    \item Upgrade display for size and potential for different colors.
+    \item Use thermocouple that does not present serious electrical risk.
+\end{itemize}
+
+Software Changes
+\begin{itemize}
+    \item Return to a task-based approach to system management.
+    \item Implement darkness mode changes when toasting process is ongoing.
+    \item Include granular temperature controls.
+    \item Add a timer to the display output.
+    \item Allow for cancellation of the toast monitoring state.
+    \item Improve precision of the servomotor head position.
+\end{itemize}
+\end{frame}
+
+\end{document}

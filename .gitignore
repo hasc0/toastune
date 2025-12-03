@@ -6,5 +6,9 @@ build
 *.log
 *.fls
 *.pdf
+*.nav
+*.out
+*.snm
+*.toc
 *.fdb_latexmk
 *.synctex.gz

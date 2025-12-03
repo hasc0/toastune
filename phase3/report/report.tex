@@ -1,0 +1,158 @@
+\documentclass{cse321}
+
+\title{Term Project: toastune}
+\author{Harper Scott}
+\date{December 1, 2025}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+The objective of \verb|toastune| is to make it possible to get a consistent piece of toast regardless
+of what toaster is being used. The long-term ideal for this project would be a self contained hardware
+unit that can be attached to any toaster, allowing any user to easily achieve their perfect toast profile.
+In creating this prototype several challenges have appeared, most of which are software-related. However,
+the prototype has been finalized with the exception of a consistent mounting system and a positional servo.
+
+\section{Project Title and Problem Definition}
+\begin{itemize}
+    \item[a.]
+    \textbf{Project Title:} toastune
+    \item[b.]
+    \textbf{Problem Definition:} An embedded system to stop any toaster once a chosen toast darkness
+    has been reached, producing toast finished to one's personal preferences regardless of the toaster
+    being used.
+    \item[c.]
+    \textbf{Functional Requirements:}
+    \begin{list}{$\bullet$}{}
+        \item
+        The system will have three user selectable states (light, medium, and dark).
+        \item
+        Each state corresponds with a toast surface temperature, the lowest temperature being associated
+        with light and the highest with dark.
+        \item
+        The system will include a display to show the selected state and a button to cycle through the
+        three states.
+        \item
+        The system will have a button that will be pressed by the user when the toaster lever is pressed
+        down to begin a toasting cycle.
+        \item
+        A thermocouple will be used to constantly measure the surface temperature of the toast.
+        \item
+        The system will employ a servomotor to actuate the button to end the toast cycle on the toaster
+        once the selected temperature has been attained.
+    \end{list}
+    \item[d.]
+    \textbf{Non-Functional Requirements:}
+    \begin{list}{$\bullet$}{}
+        \item 
+        \textbf{Real-Time:}
+        The system must be firm real-time, as missing the deadline results in overdone toast relative to
+        the user's preference and as a result is discarded.
+        \item 
+        \textbf{Reliability:}
+        Must be able to operate whenever the user decides to run the system to make toast and should not
+        crash or lock up during use.
+        \item 
+        \textbf{Performance:}
+        User inputs must be provided a visual response on a display within $500 \text{ ms}$, the
+        thermocouple must provide a current value every $50 \text{ ms}$ at most, and the servomotor must
+        actuate within $200 \text{ ms}$ of the selected temperature being reached.
+    \end{list}
+\end{itemize}
+
+\section{Hardware Components}
+The core of \verb|toastune| is an Arduino UNO Rev3. The final peripheral components are as follows:
+\begin{itemize}
+    \item USB-A to USB-B Cable
+    \item ELEGOO Breadboard
+    \item ELEGOO 0.96" 128x64 I$^2$C OLED Display (SSD1306)
+    \item Feetech FS90R Continuous Rotation Servo
+    \item Adafruit AD8495 K-Type Thermocouple Amplifier
+    \item Adafruit Type-K Glass Braid Insulated Termocouple
+    \item 18x Jumper Wire
+    \item 2x Push Button
+\end{itemize}
+The purpose of the USB cable is to power the Arduino. All additional components recieve power from the 5V
+pin on the Arduino itself. The OLED display serves to display the status of the system and the current
+selected toast "darkness" setting alongside idle/run state and thermocouple temperature. The servo actuates
+the button on the toaster that cancels the toasting process once the target temperature has been reached.
+The thermocouple and amplifier are used to probe the surface of the bread in order to get the current
+temperature reading. One of the buttons starts the system and the second button rotates through the toast
+preference modes.
+
+\section{Software Components}
+The codebase is hosted on GitHub in order to maintain proper versioning to ensure that rollbacks are
+possible. The URL for the repository is \url{https://github.com/hasc0/toastune}. The libraries used are
+as follows:
+\begin{itemize}
+    \item Arduino
+    \item U8x8
+    \item Servo
+\end{itemize}
+The most obscure libary listed, U8x8, is a lightweight library used for producing output to the SSD1306
+OLED display. This was chosen because the standard Adafruit library consumed a significant amount of
+storage and memory and most of its functionality was not needed. U8x8 only allows for text output, which
+is all that is needed for this project. The code is structured as minimally as possible within the core
+\verb|loop()| function, as the FreeRTOS library consumed too much memory to be viable. The primary helper
+functions, \verb|temperatureMonitor()| and \verb|displayOutput()|, serve to get the current thermocouple
+temperature in Celsius and format all information for output to the display, respectively. Both helper
+functions are called at least once per iteration of \verb|loop()|. The \verb|setup()| function contains
+code to verify all output components are working. This is done by displaying a welcome message on the
+display and briefly actuating the servo. Note that the Arduino CLI, Visual Studio Code, and the Arduino
+Community Edition extension were used for development instead of the Arduino IDE.
+
+\section{Circuit Design}
+\begin{center}
+    \includegraphics[width=0.6\linewidth]{figures/cd.png}
+\end{center}
+
+\section{Finite State Machine}
+\begin{center}
+    \includegraphics[width=\linewidth]{figures/fsm.png}
+\end{center}
+
+\section{Testing Scripts and Patterns}
+The bulk of the testing is done manually using human input. The testing process is as follows:
+\begin{itemize}
+    \item
+    On system reset, verify that the welcome message (project name, course name, and author name) all
+    appear on screen.
+    \item
+    Verify that the display switches to real-time display of currently selected mode ("Light" following
+    reset), current temperature in celsius, and the current system status ("Idle" following reset).
+    \item
+    Press the mode select button several time, ensuring that the select mode cycles from "Light" to
+    "Medium" to "Dark" and back to "Light".
+    \item
+    Use a heat source to heat the thermocouple, confirm the temperature value approaches 750.
+    \item
+    Press the start button and confirm the status value changes from "Idle" to "Run".
+    \item
+    Heat the thermocouple and verify the servomotor actuates once the temperature value reaches 155, 170,
+    and 185 for "Light", "Medium", and "Dark" modes, respectively.
+\end{itemize}
+
+\section{Observation and Notes}
+First, the task structure previously utilized is highly volatile and experienced significant bugs. Due to
+the size of some of the libraries used, stack overflows are frequent and the system often failed to
+initialize. To rectify this, the code was restructed into a simple \verb|loop()|. The result has been a
+more responsive system with significantly increased reliability. The second issue, which was unanticipated
+due to poor planning, is that the use of a continuous servo makes it far more challenging to precisely
+position the servo head. Instead of specifying a rotation angle, a formula must be used to convert the
+speed at which the servo rotates to a rotation angle over a certain duration. This solution failed to
+produce satisfactory results, so unfortunately the only acceptable solution is to replace the continuous
+servo with a positional servo. The final issue pertains the the display library used. In initial testing,
+the Adafruit SSD1306 library was used and produced reliable output. However, due to size constraints it was
+replaced with U8x8 which is significantly lighter-weight.
+
+\section{Conclusion}
+There are some issues with the prototype that need to be solved, however the system in its current state
+sufficiently functions as a well-rounded proof of concept. The prototype hardware is final with the exception
+of the servo and the software, while more limited in scope and features than initially intended, works reliably
+and responsively. The resulting toast is somewhat inconsistent due and relies heavily on thermocouple position,
+however it typically produces an acceptable result and the system meets all required deadlines based on the
+inputs.
+
+\end{document}
